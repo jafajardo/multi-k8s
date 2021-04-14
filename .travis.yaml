@@ -1,11 +1,15 @@
 sudo: required
 services:
   - docker
+env:
+  global:
+    - SHA=$(git rev-parse HEAD)
+    - CLOUDSDK_CORE_DISABLE_PROMPTS=1
 before_install:
-  # Use the encrypted service-account.json.enc
+  # Use the encrypted service-account.json.enc and un-encrypt it as service-account.json making it available for gcloud
   - openssl aes-256-cbc -K $encrypted_9f3b5599b056_key -iv $encrypted_9f3b5599b056_iv -in service-account.json.enc -out service-account.json -d
 
-  # In the tutorial, Google Cloud SDK is downloaded
+  # Download Google Cloud SDK
   - curl https://sdk.cloud.google.com | bash > /dev/null;
   
   # Look for the default path where the SDK was installed
@@ -17,3 +21,25 @@ before_install:
 
   # Authenticate user using a file service-account.json
   - gcloud auth activate-service-account --key-file service-account.json
+
+  # Set the project name ID
+  - gcloud config set project multi-k8s-310604
+
+  # Set the location of the cluster
+  - gcloud config set compute/zone asia-southeast1-a
+
+  # Set the cluster name
+  - gcloud container clusters get-credentials multi-cluster
+
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
+  - docker build -t josephfajardo/react-test -f ./client/Dockerfile.dev ./client
+
+script:
+  - docker run -e CI=true josephfajardo/react-test npm run test
+
+deploy:
+  provider: script
+  script: bash ./deploy.sh
+  on:
+    branch: master
