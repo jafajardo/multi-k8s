@@ -1,0 +1,19 @@
+sudo: required
+services:
+  - docker
+before_install:
+  # Use the encrypted service-account.json.enc
+  - openssl aes-256-cbc -K $encrypted_9f3b5599b056_key -iv $encrypted_9f3b5599b056_iv -in service-account.json.enc -out service-account.json -d
+
+  # In the tutorial, Google Cloud SDK is downloaded
+  - curl https://sdk.cloud.google.com | bash > /dev/null;
+  
+  # Look for the default path where the SDK was installed
+  - source $HOME/google-cloud-sdk/path.bash.inc
+  
+  # gcloud is the Google Cloud SDK
+  # Install kubectl
+  - gcloud components update kubectl
+
+  # Authenticate user using a file service-account.json
+  - gcloud auth activate-service-account --key-file service-account.json
